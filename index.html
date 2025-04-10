@@ -3,88 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver/Admin Prototype</title>
+    <title>Driver/Admin Prototype (Firebase)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Apply Inter font globally */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Custom style for checked-in state */
-        .checked-in {
-            background-color: #d1fae5; /* Tailwind green-100 */
-            border-left: 4px solid #10b981; /* Tailwind green-500 */
-        }
-        /* Style for the Undo button */
-        .undo-button {
-             background-color: #f59e0b; /* Tailwind amber-500 */
-        }
-        .undo-button:hover {
-             background-color: #d97706; /* Tailwind amber-600 */
-        }
-        /* Simple Modal Style */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed;
-            z-index: 10;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto; /* Adjusted margin for potentially taller modal */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 8px;
-        }
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        /* Active tab style */
-        .tab-active {
-            border-bottom: 2px solid #4f46e5; /* Indigo-600 */
-            color: #4f46e5;
-            font-weight: 600;
-        }
-        /* Feedback message style */
-        .feedback-message {
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-            font-size: 0.875rem;
-        }
-        .feedback-success {
-            background-color: #d1fae5; /* green-100 */
-            color: #065f46; /* green-800 */
-            border: 1px solid #6ee7b7; /* green-300 */
-        }
-         .feedback-error {
-            background-color: #fee2e2; /* red-100 */
-            color: #991b1b; /* red-800 */
-            border: 1px solid #fca5a5; /* red-300 */
-        }
-        /* Utility class to hide elements */
-        .hidden {
-            display: none;
-        }
+        /* Styles remain largely the same */
+        body { font-family: 'Inter', sans-serif; }
+        .checked-in { background-color: #d1fae5; border-left: 4px solid #10b981; }
+        .undo-button { background-color: #f59e0b; }
+        .undo-button:hover { background-color: #d97706; }
+        .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+        .tab-active { border-bottom: 2px solid #4f46e5; color: #4f46e5; font-weight: 600; }
+        .feedback-message { padding: 10px; margin-top: 10px; border-radius: 5px; font-size: 0.875rem; }
+        .feedback-success { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .feedback-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .hidden { display: none; }
+        /* Style for loading state */
+        .loading-indicator { font-style: italic; color: #6b7280; } /* gray-500 */
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8">
@@ -107,12 +48,13 @@
             <div class="mb-6">
                 <label for="bus-select" class="block text-sm font-medium text-gray-700 mb-2">Select Bus:</label>
                 <select id="bus-select" class="block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                    </select>
+                     <option value="" disabled selected>Loading buses...</option>
+                </select>
             </div>
             <div class="mb-4">
                 <h2 class="text-lg font-semibold text-gray-700 mb-3">Passenger List</h2>
                 <div id="passenger-list" class="space-y-3">
-                    <p class="text-gray-500 text-center">Select a bus to see the passenger list.</p>
+                    <p class="text-gray-500 text-center loading-indicator">Select a bus to see the passenger list.</p>
                 </div>
             </div>
             <div class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200">
@@ -132,14 +74,14 @@
                      <table class="min-w-full divide-y divide-gray-200">
                          <thead class="bg-gray-50">
                              <tr>
-                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identifier/Route</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                              </tr>
                          </thead>
                          <tbody id="admin-bus-table-body" class="bg-white divide-y divide-gray-200">
-                             </tbody>
+                             <tr><td colspan="3" class="text-center p-4 loading-indicator">Loading buses...</td></tr>
+                         </tbody>
                      </table>
                  </div>
             </div>
@@ -156,10 +98,11 @@
                     <h3 class="text-md font-semibold text-gray-700 mb-3">Bulk Add Passengers Form</h3>
                     <p class="text-sm text-gray-600 mb-2">
                         Paste passenger list below. Each line should be one passenger in the format: <br>
-                        <code class="text-xs bg-white p-1 rounded border border-gray-300">Name,Gender,MobileNumber,AssignedBusID</code>
+                        <code class="text-xs bg-white p-1 rounded border border-gray-300">Name,Gender,MobileNumber,AssignedBusDocID</code>
+                        <br> <span class="text-red-600 text-xs">Note: Use the actual Firestore Document ID for the bus.</span>
                     </p>
                     <p class="text-xs text-gray-500 mb-3">
-                        Example: <code class="text-xs bg-white p-1 rounded border border-gray-300">John Doe,Male,555-1234,2</code>
+                        Example: <code class="text-xs bg-white p-1 rounded border border-gray-300">John Doe,Male,555-1234,BusDocABC123</code>
                     </p>
                     <textarea id="bulk-passenger-list" rows="6" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Paste list here..."></textarea>
                     <button id="import-list-button" onclick="handleBulkAddPassengers()" class="mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -172,7 +115,6 @@
                     <table class="min-w-full divide-y divide-gray-200">
                          <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
@@ -182,7 +124,8 @@
                             </tr>
                         </thead>
                         <tbody id="admin-passenger-table-body" class="bg-white divide-y divide-gray-200">
-                            </tbody>
+                             <tr><td colspan="6" class="text-center p-4 loading-indicator">Loading passengers...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -197,397 +140,605 @@
                 <input type="hidden" id="edit-item-id">
                 <input type="hidden" id="edit-item-type">
                 <div id="edit-fields" class="space-y-4">
-                    </div>
+                    <p class="loading-indicator">Loading form...</p>
+                </div>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 text-sm">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">Save Changes</button>
+                    <button type="submit" id="modal-save-button" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script>
-        // --- Mock Data ---
-        let buses = [
-            { id: 1, identifier: "BUS-A01 - Route 5", capacity: 50 },
-            { id: 2, identifier: "BUS-B07 - Route 12", capacity: 45 },
-            { id: 3, identifier: "BUS-C15 - Special Event", capacity: 60 }
-        ];
-        let passengers = [
-             { id: 101, name: "Alice Johnson", gender: "Female", mobileNumber: "555-0101", status: "pending", assignedBusId: 1 },
-            { id: 102, name: "Bob Williams", gender: "Male", mobileNumber: "555-0102", status: "pending", assignedBusId: 1 },
-            { id: 103, name: "Charlie Brown", gender: "Male", mobileNumber: "555-0103", status: "checked-in", assignedBusId: 1 },
-            { id: 104, name: "Diana Davis", gender: "Female", mobileNumber: "555-0104", status: "pending", assignedBusId: 1 },
-            { id: 201, name: "Ethan Garcia", gender: "Male", mobileNumber: "555-0201", status: "pending", assignedBusId: 2 },
-            { id: 202, name: "Fiona Miller", gender: "Female", mobileNumber: "555-0202", status: "pending", assignedBusId: 2 },
-            { id: 301, name: "George Rodriguez", gender: "Male", mobileNumber: "555-0301", status: "pending", assignedBusId: 3 },
-            { id: 302, name: "Hannah Smith", gender: "Female", mobileNumber: "555-0302", status: "pending", assignedBusId: 3 },
-            { id: 303, name: "Ian Martinez", gender: "Non-binary", mobileNumber: "555-0303", status: "pending", assignedBusId: 3 }
-        ];
+    <script type="module">
+      // Import necessary functions from the Firebase SDK
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+      import {
+          getFirestore, collection, getDocs, getDoc, doc, addDoc,
+          updateDoc, deleteDoc, query, where, writeBatch
+      } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-        // --- DOM Elements ---
-        const busSelect = document.getElementById('bus-select');
-        const passengerListDiv = document.getElementById('passenger-list');
-        const totalPassengersSpan = document.getElementById('total-passengers');
-        const checkedInCountSpan = document.getElementById('checked-in-count');
-        const pendingCountSpan = document.getElementById('pending-count');
-        const driverViewDiv = document.getElementById('driver-view');
-        const adminViewDiv = document.getElementById('admin-view');
-        const adminBusTableBody = document.getElementById('admin-bus-table-body');
-        const adminPassengerTableBody = document.getElementById('admin-passenger-table-body');
-        const editModal = document.getElementById('editModal');
-        const editForm = document.getElementById('editForm');
-        const editFieldsDiv = document.getElementById('edit-fields');
-        const modalTitle = document.getElementById('modal-title');
-        const editItemIdInput = document.getElementById('edit-item-id');
-        const editItemTypeInput = document.getElementById('edit-item-type');
-        const tabDriver = document.getElementById('tab-driver');
-        const tabAdmin = document.getElementById('tab-admin');
-        const bulkPassengerListTextarea = document.getElementById('bulk-passenger-list');
-        const bulkAddFeedbackDiv = document.getElementById('bulk-add-feedback');
-        const bulkAddPanel = document.getElementById('bulk-add-panel');
-        const toggleBulkAddBtn = document.getElementById('toggle-bulk-add-btn');
+      // --- Firebase Configuration ---
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhkVH0vOOxWxkan7InqqchjTKX4fko9vg",
+        authDomain: "busroute-f8724.firebaseapp.com",
+        projectId: "busroute-f8724",
+        storageBucket: "busroute-f8724.firebasestorage.app",
+        messagingSenderId: "340211513292",
+        appId: "1:340211513292:web:20535e2dc4202980e1cf69",
+        measurementId: "G-KGFQ6L6RTB"
+      };
+      // -----------------------------
 
+      // Initialize Firebase
+      try {
+          const app = initializeApp(firebaseConfig);
+          const db = getFirestore(app);
+          console.log("Firebase Initialized Successfully.");
 
-        // --- View Switching ---
-        function switchView(viewName) {
-            bulkAddFeedbackDiv.innerHTML = ''; // Clear feedback
-            bulkAddPanel.classList.add('hidden'); // Ensure panel is hidden on view switch
-            toggleBulkAddBtn.textContent = 'Show Bulk Add'; // Reset button text
+          // --- Global variable to cache buses ---
+          let cachedBuses = [];
 
-            if (viewName === 'admin') {
-                driverViewDiv.classList.add('hidden');
-                adminViewDiv.classList.remove('hidden');
-                tabDriver.classList.remove('tab-active', 'text-indigo-600');
-                tabDriver.classList.add('text-gray-500', 'hover:text-gray-700');
-                tabAdmin.classList.add('tab-active', 'text-indigo-600');
-                tabAdmin.classList.remove('text-gray-500', 'hover:text-gray-700');
-                displayAdminBuses();
-                displayAdminPassengers();
-            } else { // 'driver' view
-                driverViewDiv.classList.remove('hidden');
-                adminViewDiv.classList.add('hidden');
-                tabAdmin.classList.remove('tab-active', 'text-indigo-600');
-                tabAdmin.classList.add('text-gray-500', 'hover:text-gray-700');
-                tabDriver.classList.add('tab-active', 'text-indigo-600');
-                tabDriver.classList.remove('text-gray-500', 'hover:text-gray-700');
-                populateBusSelector();
-                busSelect.dispatchEvent(new Event('change'));
-            }
-        }
-
-        // --- Toggle Bulk Add Panel Function ---
-        function toggleBulkAddPanel() {
-            const isHidden = bulkAddPanel.classList.contains('hidden');
-            if (isHidden) {
-                bulkAddPanel.classList.remove('hidden');
-                toggleBulkAddBtn.textContent = 'Hide Bulk Add';
-            } else {
-                bulkAddPanel.classList.add('hidden');
-                toggleBulkAddBtn.textContent = 'Show Bulk Add';
-                bulkAddFeedbackDiv.innerHTML = ''; // Clear feedback when hiding
-            }
-        }
-
-        // --- Driver View Functions ---
-        function populateBusSelector() {
-            const currentVal = busSelect.value;
-            busSelect.innerHTML = '<option value="" disabled selected>-- Select a Bus --</option>';
-            buses.forEach(bus => {
-                const option = document.createElement('option');
-                option.value = bus.id;
-                option.textContent = bus.identifier;
-                busSelect.appendChild(option);
-            });
-             if (buses.some(b => b.id == currentVal)) {
-                busSelect.value = currentVal;
-            } else {
-                 passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">Select a bus to see the passenger list.</p>';
-                 updateSummary([]);
-            }
-        }
-        function updateSummary(currentBusPassengers) {
-            const total = currentBusPassengers.length;
-            const checkedIn = currentBusPassengers.filter(p => p.status === 'checked-in').length;
-            const pending = total - checkedIn;
-            totalPassengersSpan.textContent = total;
-            checkedInCountSpan.textContent = checkedIn;
-            pendingCountSpan.textContent = pending;
-        }
-        function displayPassengers(selectedBusId) {
-            passengerListDiv.innerHTML = '';
-            // Filter passengers ensuring assignedBusId is compared correctly (as number)
-            const currentBusPassengers = passengers.filter(p => p.assignedBusId === selectedBusId);
-
-            if (currentBusPassengers.length === 0) {
-                passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">No passengers assigned to this bus.</p>';
-                updateSummary([]);
-                return;
-            }
-
-            currentBusPassengers.forEach(passenger => {
-                const passengerDiv = document.createElement('div');
-                passengerDiv.className = `passenger-item flex items-center justify-between p-3 border border-gray-200 rounded-md ${passenger.status === 'checked-in' ? 'checked-in' : 'bg-white'}`;
-                passengerDiv.dataset.passengerId = passenger.id;
-                const passengerNameSpan = document.createElement('span');
-                passengerNameSpan.className = "text-gray-800 font-medium";
-                passengerNameSpan.textContent = passenger.name;
-                const actionButton = document.createElement('button');
-                actionButton.className = 'px-3 py-1 text-xs font-medium text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50';
-                if (passenger.status === 'pending') {
-                    actionButton.textContent = 'Check In';
-                    actionButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
-                    actionButton.addEventListener('click', () => handleCheckIn(passenger.id, selectedBusId));
-                } else {
-                    actionButton.textContent = 'Undo';
-                    actionButton.classList.add('undo-button');
-                    actionButton.addEventListener('click', () => handleUndoCheckIn(passenger.id, selectedBusId));
-                }
-                passengerDiv.appendChild(passengerNameSpan);
-                passengerDiv.appendChild(actionButton);
-                passengerListDiv.appendChild(passengerDiv);
-            });
-            updateSummary(currentBusPassengers);
-        }
-        function handleCheckIn(passengerId, currentBusId) {
-            const passengerIndex = passengers.findIndex(p => p.id === passengerId);
-            if (passengerIndex !== -1) {
-                passengers[passengerIndex].status = 'checked-in';
-                displayPassengers(currentBusId);
-            }
-        }
-        function handleUndoCheckIn(passengerId, currentBusId) {
-            const passengerIndex = passengers.findIndex(p => p.id === passengerId);
-            if (passengerIndex !== -1) {
-                passengers[passengerIndex].status = 'pending';
-                displayPassengers(currentBusId);
-            }
-        }
-
-        // --- Admin View Functions ---
-        function displayAdminBuses() {
-            adminBusTableBody.innerHTML = '';
-            buses.forEach(bus => {
-                const row = adminBusTableBody.insertRow();
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${bus.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.identifier}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.capacity}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal('bus', ${bus.id})" class="text-indigo-600 hover:text-indigo-900">Edit</button>
-                    </td>
-                `;
-            });
-        }
-
-        function displayAdminPassengers() {
-            adminPassengerTableBody.innerHTML = '';
-            passengers.forEach(passenger => {
-                const row = adminPassengerTableBody.insertRow();
-                // Added Delete button with correct onclick handler
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${passenger.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.gender || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.mobileNumber || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.assignedBusId || 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.status}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="openEditModal('passenger', ${passenger.id})" class="text-indigo-600 hover:text-indigo-900">Edit</button>
-                        <button onclick="handleDeletePassenger(${passenger.id})" class="text-red-600 hover:text-red-900 ml-4">Delete</button>
-                    </td>
-                `;
-            });
-        }
-
-        // --- CORRECTED: Delete Passenger Function ---
-        function handleDeletePassenger(passengerId) {
-            // Confirmation dialog
-            if (confirm(`Are you sure you want to delete passenger ID ${passengerId}? This action cannot be undone.`)) {
-                const passengerIndex = passengers.findIndex(p => p.id === passengerId);
-
-                // Add console log for debugging
-                console.log(`Attempting to delete passenger ID: ${passengerId}, Index found: ${passengerIndex}`);
-
-                if (passengerIndex !== -1) {
-                    passengers.splice(passengerIndex, 1); // Remove passenger from array
-                    console.log(`Successfully deleted passenger ID ${passengerId} from array.`);
-                    displayAdminPassengers(); // Refresh the admin table
-
-                    // Also refresh the driver view passenger list if a bus is currently selected
-                    const selectedBusId = parseInt(busSelect.value, 10);
-                    if (!isNaN(selectedBusId)) {
-                         console.log(`Refreshing driver view for bus ID: ${selectedBusId}`);
-                         displayPassengers(selectedBusId);
-                    }
-
-                } else {
-                    console.error(`Passenger ID ${passengerId} not found for deletion.`);
-                    // Provide user feedback if needed, e.g., alert('Error: Passenger not found.');
-                }
-            } else {
-                 console.log(`Deletion cancelled for passenger ID ${passengerId}.`);
-            }
-        }
+          // --- DOM Elements ---
+          const busSelect = document.getElementById('bus-select');
+          const passengerListDiv = document.getElementById('passenger-list');
+          const totalPassengersSpan = document.getElementById('total-passengers');
+          const checkedInCountSpan = document.getElementById('checked-in-count');
+          const pendingCountSpan = document.getElementById('pending-count');
+          const driverViewDiv = document.getElementById('driver-view');
+          const adminViewDiv = document.getElementById('admin-view');
+          const adminBusTableBody = document.getElementById('admin-bus-table-body');
+          const adminPassengerTableBody = document.getElementById('admin-passenger-table-body');
+          const editModal = document.getElementById('editModal');
+          const editForm = document.getElementById('editForm');
+          const editFieldsDiv = document.getElementById('edit-fields');
+          const modalTitle = document.getElementById('modal-title');
+          const editItemIdInput = document.getElementById('edit-item-id');
+          const editItemTypeInput = document.getElementById('edit-item-type');
+          const tabDriver = document.getElementById('tab-driver');
+          const tabAdmin = document.getElementById('tab-admin');
+          const bulkPassengerListTextarea = document.getElementById('bulk-passenger-list');
+          const bulkAddFeedbackDiv = document.getElementById('bulk-add-feedback');
+          const bulkAddPanel = document.getElementById('bulk-add-panel');
+          const toggleBulkAddBtn = document.getElementById('toggle-bulk-add-btn');
+          const modalSaveButton = document.getElementById('modal-save-button');
 
 
-        // --- Modal Functions ---
-         function openEditModal(itemType, itemId) {
-            editFieldsDiv.innerHTML = '';
-            editItemIdInput.value = itemId;
-            editItemTypeInput.value = itemType;
-            if (itemType === 'bus') {
-                const bus = buses.find(b => b.id === itemId);
-                if (!bus) return;
-                modalTitle.textContent = `Edit Bus (ID: ${bus.id})`;
-                editFieldsDiv.innerHTML = `
-                    <div><label for="edit-bus-identifier" class="block text-sm font-medium text-gray-700">Identifier/Route</label><input type="text" id="edit-bus-identifier" value="${bus.identifier}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
-                    <div><label for="edit-bus-capacity" class="block text-sm font-medium text-gray-700">Capacity</label><input type="number" id="edit-bus-capacity" value="${bus.capacity}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
-                `;
-            } else if (itemType === 'passenger') {
-                const passenger = passengers.find(p => p.id === itemId);
-                if (!passenger) return;
-                modalTitle.textContent = `Edit Passenger (ID: ${passenger.id})`;
+          // --- Utility Functions ---
+          function showLoading(element, message = "Loading...") {
+              if (element) {
+                   let colspan = 1;
+                   if (element.id === 'admin-bus-table-body') colspan = 3;
+                   if (element.id === 'admin-passenger-table-body') colspan = 6;
+                   if (element.tagName === 'TBODY') {
+                        element.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 loading-indicator">${message}</td></tr>`;
+                   } else {
+                        element.innerHTML = `<p class="loading-indicator text-center p-4">${message}</p>`;
+                   }
+              }
+          }
+          function disableButton(button, text = "Processing...") {
+              if (button) {
+                  button.disabled = true;
+                  button.textContent = text;
+              }
+          }
+          function enableButton(button, originalText) {
+               if (button) {
+                  button.disabled = false;
+                  button.textContent = originalText;
+              }
+          }
 
-                // --- ENHANCEMENT: Create Bus ID Dropdown ---
-                let busOptionsHtml = '<option value="">-- Unassigned --</option>'; // Default unassigned option
-                buses.forEach(bus => {
-                    const selected = (bus.id === passenger.assignedBusId) ? 'selected' : '';
-                    busOptionsHtml += `<option value="${bus.id}" ${selected}>${bus.identifier} (ID: ${bus.id})</option>`;
-                });
-                const busSelectHtml = `
-                    <div>
-                        <label for="edit-passenger-bus" class="block text-sm font-medium text-gray-700">Assigned Bus</label>
-                        <select id="edit-passenger-bus" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                            ${busOptionsHtml}
-                        </select>
-                    </div>`;
-                // --- End Bus ID Dropdown ---
+          // --- View Switching ---
+          window.switchView = function(viewName) {
+              bulkAddFeedbackDiv.innerHTML = '';
+              bulkAddPanel.classList.add('hidden');
+              toggleBulkAddBtn.textContent = 'Show Bulk Add';
 
-                // Simplified Gender options
-                editFieldsDiv.innerHTML = `
-                    <div><label for="edit-passenger-name" class="block text-sm font-medium text-gray-700">Name</label><input type="text" id="edit-passenger-name" value="${passenger.name}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
-                    <div>
-                        <label for="edit-passenger-gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                        <select id="edit-passenger-gender" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                            <option value="Female" ${passenger.gender === 'Female' ? 'selected' : ''}>Female</option>
-                            <option value="Male" ${passenger.gender === 'Male' ? 'selected' : ''}>Male</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Note: Other genders in data will default to Female/Male upon edit.</p>
-                    </div>
-                    <div><label for="edit-passenger-mobile" class="block text-sm font-medium text-gray-700">Mobile Number</label><input type="tel" id="edit-passenger-mobile" value="${passenger.mobileNumber || ''}" placeholder="e.g., 555-0101" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
-                    ${busSelectHtml} <div><label for="edit-passenger-status" class="block text-sm font-medium text-gray-700">Status</label><select id="edit-passenger-status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"><option value="pending" ${passenger.status === 'pending' ? 'selected' : ''}>Pending</option><option value="checked-in" ${passenger.status === 'checked-in' ? 'selected' : ''}>Checked-in</option></select></div>
-                `;
-            }
-            editModal.style.display = 'block';
-        }
-        function closeEditModal() {
-            editModal.style.display = 'none';
-        }
-        function handleSaveChanges(event) {
-            event.preventDefault();
-            const itemId = parseInt(editItemIdInput.value, 10);
-            const itemType = editItemTypeInput.value;
-            if (itemType === 'bus') {
-                const busIndex = buses.findIndex(b => b.id === itemId);
-                if (busIndex !== -1) {
-                    buses[busIndex].identifier = document.getElementById('edit-bus-identifier').value;
-                    buses[busIndex].capacity = parseInt(document.getElementById('edit-bus-capacity').value, 10) || 0;
-                    displayAdminBuses();
-                     // Refresh bus selector in driver view if bus details changed
-                     populateBusSelector();
-                }
-            } else if (itemType === 'passenger') {
-                const passengerIndex = passengers.findIndex(p => p.id === itemId);
-                if (passengerIndex !== -1) {
-                    passengers[passengerIndex].name = document.getElementById('edit-passenger-name').value;
-                    passengers[passengerIndex].gender = document.getElementById('edit-passenger-gender').value;
-                    passengers[passengerIndex].mobileNumber = document.getElementById('edit-passenger-mobile').value;
-                    // Read value from the select dropdown for bus ID
-                    passengers[passengerIndex].assignedBusId = parseInt(document.getElementById('edit-passenger-bus').value, 10) || null; // Use null if '-- Unassigned --' is selected
-                    passengers[passengerIndex].status = document.getElementById('edit-passenger-status').value;
-                    displayAdminPassengers();
-                     // Refresh driver view if passenger's bus assignment or status changed
-                     const selectedBusId = parseInt(busSelect.value, 10);
-                     if (!isNaN(selectedBusId)) {
-                         displayPassengers(selectedBusId);
-                     }
-                }
-            }
-            closeEditModal();
-        }
+              if (viewName === 'admin') {
+                  driverViewDiv.classList.add('hidden');
+                  adminViewDiv.classList.remove('hidden');
+                  tabDriver.classList.remove('tab-active', 'text-indigo-600');
+                  tabDriver.classList.add('text-gray-500', 'hover:text-gray-700');
+                  tabAdmin.classList.add('tab-active', 'text-indigo-600');
+                  tabAdmin.classList.remove('text-gray-500', 'hover:text-gray-700');
+                  displayAdminBuses();
+                  displayAdminPassengers();
+              } else {
+                  driverViewDiv.classList.remove('hidden');
+                  adminViewDiv.classList.add('hidden');
+                  tabAdmin.classList.remove('tab-active', 'text-indigo-600');
+                  tabAdmin.classList.add('text-gray-500', 'hover:text-gray-700');
+                  tabDriver.classList.add('tab-active', 'text-indigo-600');
+                  tabDriver.classList.remove('text-gray-500', 'hover:text-gray-700');
+                  populateBusSelector(); // Call this to load buses for driver view
+              }
+          }
 
-        // --- Bulk Add Passenger Function ---
-        function handleBulkAddPassengers() {
-            const list = bulkPassengerListTextarea.value.trim();
-            const lines = list.split('\n');
-            let addedCount = 0;
-            let errorCount = 0;
-            let errors = [];
-            let maxId = passengers.reduce((max, p) => Math.max(max, p.id), 0);
+          // --- Toggle Bulk Add Panel Function ---
+          window.toggleBulkAddPanel = function() {
+              const isHidden = bulkAddPanel.classList.contains('hidden');
+              if (isHidden) {
+                  bulkAddPanel.classList.remove('hidden');
+                  toggleBulkAddBtn.textContent = 'Hide Bulk Add';
+              } else {
+                  bulkAddPanel.classList.add('hidden');
+                  toggleBulkAddBtn.textContent = 'Show Bulk Add';
+                  bulkAddFeedbackDiv.innerHTML = '';
+              }
+          }
 
-            lines.forEach((line, index) => {
-                line = line.trim();
-                if (!line) return;
-                const values = line.split(',');
-                if (values.length !== 4) {
-                    errors.push(`Line ${index + 1}: Incorrect format (expected 4 values separated by commas).`); errorCount++; return;
-                }
-                const [name, gender, mobileNumber, assignedBusIdStr] = values.map(v => v.trim());
-                const assignedBusId = parseInt(assignedBusIdStr, 10);
-                if (!name) { errors.push(`Line ${index + 1}: Name cannot be empty.`); errorCount++; return; }
-                if (isNaN(assignedBusId)) { errors.push(`Line ${index + 1}: Assigned Bus ID must be a number.`); errorCount++; return; }
-                if (!buses.some(bus => bus.id === assignedBusId)) { errors.push(`Line ${index + 1}: Bus ID ${assignedBusId} not found.`); errorCount++; return; }
-                maxId++;
-                const newPassenger = { id: maxId, name: name, gender: gender || 'Prefer not to say', mobileNumber: mobileNumber || null, status: 'pending', assignedBusId: assignedBusId };
-                passengers.push(newPassenger);
-                addedCount++;
-            });
+          // --- Driver View Functions ---
+          async function populateBusSelector() {
+              // **DEBUG:** Log start
+              console.log("[Populate Buses] Starting...");
+              showLoading(busSelect.parentElement);
+              busSelect.innerHTML = '<option value="" disabled selected>Loading buses...</option>';
+              busSelect.disabled = true;
+              try {
+                  const busCol = collection(db, "buses");
+                  console.log("[Populate Buses] Fetching documents from 'buses' collection..."); // **DEBUG**
+                  const busSnapshot = await getDocs(busCol);
+                  // **DEBUG:** Log snapshot size
+                  console.log(`[Populate Buses] Fetched ${busSnapshot.size} bus documents.`);
+                  cachedBuses = busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            bulkAddFeedbackDiv.innerHTML = '';
-            if (addedCount > 0) {
+                  busSelect.innerHTML = '<option value="" disabled selected>-- Select a Bus --</option>';
+                  if (busSnapshot.empty) {
+                     console.warn("[Populate Buses] No buses found in Firestore collection.");
+                     busSelect.innerHTML = '<option value="" disabled selected>No buses available</option>';
+                  } else {
+                     cachedBuses.forEach(bus => {
+                         const option = document.createElement('option');
+                         option.value = bus.id;
+                         option.textContent = bus.identifier || `Bus ID: ${bus.id.substring(0, 6)}...`;
+                         busSelect.appendChild(option);
+                     });
+                     console.log("[Populate Buses] Dropdown populated:", cachedBuses);
+                  }
+              } catch (error) {
+                  // **DEBUG:** Log error details
+                  console.error("[Populate Buses] Error loading buses for dropdown: ", error);
+                  busSelect.innerHTML = '<option value="" disabled selected>Error loading buses</option>';
+                  alert(`Error loading buses. Check console. Error: ${error.message}`); // Show error message in alert
+              } finally {
+                  // **DEBUG:** Log enabling dropdown
+                  console.log("[Populate Buses] Enabling dropdown.");
+                  busSelect.disabled = false;
+              }
+          }
+
+          function updateSummary(passengerList) {
+              const total = passengerList.length;
+              const checkedIn = passengerList.filter(p => p.status === 'checked-in').length;
+              const pending = total - checkedIn;
+              totalPassengersSpan.textContent = total;
+              checkedInCountSpan.textContent = checkedIn;
+              pendingCountSpan.textContent = pending;
+          }
+
+          async function displayPassengers(selectedBusDocId) {
+              if (!selectedBusDocId) {
+                  passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">Select a bus to see the passenger list.</p>';
+                  updateSummary([]);
+                  return;
+              }
+              showLoading(passengerListDiv, "Loading passengers...");
+              updateSummary([]);
+
+              try {
+                  const passengersCol = collection(db, "passengers");
+                  console.log(`[Display Passengers] Querying passengers where assignedBusId == ${selectedBusDocId}`); // **DEBUG**
+                  const q = query(passengersCol, where("assignedBusId", "==", selectedBusDocId));
+                  const passengerSnapshot = await getDocs(q);
+                  console.log(`[Display Passengers] Found ${passengerSnapshot.size} passengers for bus ${selectedBusDocId}`); // **DEBUG**
+                  const passengerList = passengerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                  passengerListDiv.innerHTML = '';
+
+                  if (passengerSnapshot.empty) {
+                      passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">No passengers assigned to this bus.</p>';
+                  } else {
+                      passengerList.forEach(passenger => {
+                          const passengerDiv = document.createElement('div');
+                          passengerDiv.dataset.docId = passenger.id;
+                          passengerDiv.className = `passenger-item flex items-center justify-between p-3 border border-gray-200 rounded-md ${passenger.status === 'checked-in' ? 'checked-in' : 'bg-white'}`;
+
+                          const passengerNameSpan = document.createElement('span');
+                          passengerNameSpan.className = "text-gray-800 font-medium";
+                          passengerNameSpan.textContent = passenger.name;
+
+                          const actionButton = document.createElement('button');
+                          actionButton.className = 'action-button px-3 py-1 text-xs font-medium text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50';
+                          if (passenger.status === 'pending') {
+                              actionButton.textContent = 'Check In';
+                              actionButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                              actionButton.onclick = (event) => handleCheckIn(passenger.id, selectedBusDocId, event.target);
+                          } else {
+                              actionButton.textContent = 'Undo';
+                              actionButton.classList.add('undo-button');
+                              actionButton.onclick = (event) => handleUndoCheckIn(passenger.id, selectedBusDocId, event.target);
+                          }
+
+                          passengerDiv.appendChild(passengerNameSpan);
+                          passengerDiv.appendChild(actionButton);
+                          passengerListDiv.appendChild(passengerDiv);
+                      });
+                  }
+                  updateSummary(passengerList);
+                  // console.log(`Passengers loaded for bus ${selectedBusDocId}:`, passengerList); // Keep less verbose
+
+              } catch (error) {
+                  // **DEBUG:** Log specific error
+                  console.error(`[Display Passengers] Error loading passengers for bus ${selectedBusDocId}: `, error);
+                  passengerListDiv.innerHTML = '<p class="text-red-500 text-center">Error loading passengers.</p>';
+                  alert(`Error loading passengers. Check console. Error: ${error.message}`); // Show error in alert
+                  updateSummary([]);
+              }
+          }
+
+          async function handleCheckIn(passengerDocId, currentBusDocId, buttonElement) {
+              disableButton(buttonElement, "Checking...");
+              console.log(`Checking in passenger doc ID: ${passengerDocId}`);
+              try {
+                  const passengerRef = doc(db, "passengers", passengerDocId);
+                  await updateDoc(passengerRef, { status: "checked-in" });
+                  console.log("Passenger checked in successfully in Firestore.");
+                  await displayPassengers(currentBusDocId);
+              } catch (error) {
+                  console.error("Error checking in passenger: ", error);
+                  alert("Error checking in passenger. Please try again.");
+              }
+          }
+
+          async function handleUndoCheckIn(passengerDocId, currentBusDocId, buttonElement) {
+              disableButton(buttonElement, "Undoing...");
+              console.log(`Undoing check-in for passenger doc ID: ${passengerDocId}`);
+              try {
+                  const passengerRef = doc(db, "passengers", passengerDocId);
+                  await updateDoc(passengerRef, { status: "pending" });
+                  console.log("Passenger check-in undone successfully in Firestore.");
+                  await displayPassengers(currentBusDocId);
+              } catch (error) {
+                  console.error("Error undoing check-in: ", error);
+                  alert("Error undoing check-in. Please try again.");
+              }
+          }
+
+          // --- Admin View Functions ---
+          async function displayAdminBuses() {
+              showLoading(adminBusTableBody, "Loading buses...");
+              try {
+                  const busCol = collection(db, "buses");
+                  const busSnapshot = await getDocs(busCol);
+                  const busList = busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                  adminBusTableBody.innerHTML = '';
+                  if (busList.length === 0) {
+                      adminBusTableBody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-gray-500">No buses found.</td></tr>';
+                  } else {
+                      busList.forEach(bus => {
+                          const row = adminBusTableBody.insertRow();
+                          row.innerHTML = `
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.identifier || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.capacity || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  <button onclick="openEditModal('bus', '${bus.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                              </td>
+                          `;
+                      });
+                  }
+                  // console.log("Admin buses loaded:", busList);
+              } catch (error) {
+                  console.error("Error loading admin buses: ", error);
+                  adminBusTableBody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Error loading buses.</td></tr>';
+                  alert("Error loading buses for admin view. Please check console.");
+              }
+          }
+
+          async function displayAdminPassengers() {
+              showLoading(adminPassengerTableBody, "Loading passengers...");
+              try {
+                  const passengerCol = collection(db, "passengers");
+                  const passengerSnapshot = await getDocs(passengerCol);
+                  const passengerList = passengerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                  adminPassengerTableBody.innerHTML = '';
+                  if (passengerList.length === 0) {
+                      adminPassengerTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">No passengers found.</td></tr>';
+                  } else {
+                      passengerList.forEach(passenger => {
+                          const row = adminPassengerTableBody.insertRow();
+                          row.innerHTML = `
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.name || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.gender || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.mobileNumber || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title="${passenger.assignedBusId || ''}">${passenger.assignedBusId ? passenger.assignedBusId.substring(0,6)+'...' : 'N/A'}</td> <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.status || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  <button onclick="openEditModal('passenger', '${passenger.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                                  <button onclick="handleDeletePassenger('${passenger.id}')" class="text-red-600 hover:text-red-900 ml-4">Delete</button>
+                              </td>
+                          `;
+                      });
+                  }
+                   // console.log("Admin passengers loaded:", passengerList);
+              } catch (error) {
+                  console.error("Error loading admin passengers: ", error);
+                  adminPassengerTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500">Error loading passengers.</td></tr>';
+                  alert("Error loading passengers for admin view. Please check console.");
+              }
+          }
+
+          // --- Delete Passenger Function ---
+          window.handleDeletePassenger = async function(passengerDocId) {
+              if (confirm(`Are you sure you want to delete passenger data? This action cannot be undone.`)) {
+                  console.log(`Attempting to delete passenger doc ID: ${passengerDocId}`);
+                  try {
+                      const passengerRef = doc(db, "passengers", passengerDocId);
+                      await deleteDoc(passengerRef);
+                      console.log(`Successfully deleted passenger doc ID ${passengerDocId} from Firestore.`);
+                      await displayAdminPassengers();
+                      const selectedBusId = busSelect.value;
+                       if (selectedBusId) {
+                           await displayPassengers(selectedBusId);
+                       }
+                  } catch (error) {
+                      console.error(`Error deleting passenger ${passengerDocId}: `, error);
+                      alert("Error deleting passenger. Please check console.");
+                  }
+              } else {
+                   console.log(`Deletion cancelled for passenger doc ID ${passengerDocId}.`);
+              }
+          }
+
+
+          // --- Modal Functions ---
+          window.openEditModal = async function(itemType, docId) {
+              showLoading(editFieldsDiv);
+              editModal.style.display = 'block';
+              editItemIdInput.value = docId;
+              editItemTypeInput.value = itemType;
+
+              try {
+                  if (itemType === 'bus') {
+                      const busRef = doc(db, "buses", docId);
+                      const busSnap = await getDoc(busRef);
+                      if (!busSnap.exists()) throw new Error("Bus document not found!");
+                      const bus = busSnap.data();
+                      modalTitle.textContent = `Edit Bus`;
+                      editFieldsDiv.innerHTML = `
+                          <div><label for="edit-bus-identifier" class="block text-sm font-medium text-gray-700">Identifier/Route</label><input type="text" id="edit-bus-identifier" value="${bus.identifier || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
+                          <div><label for="edit-bus-capacity" class="block text-sm font-medium text-gray-700">Capacity</label><input type="number" id="edit-bus-capacity" value="${bus.capacity || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
+                      `;
+                  } else if (itemType === 'passenger') {
+                      const passengerRef = doc(db, "passengers", docId);
+                      const passengerSnap = await getDoc(passengerRef);
+                       if (!passengerSnap.exists()) throw new Error("Passenger document not found!");
+                      const passenger = passengerSnap.data();
+                      modalTitle.textContent = `Edit Passenger`;
+
+                      let busOptionsHtml = '<option value="">-- Unassigned --</option>';
+                      if (cachedBuses.length === 0) {
+                          console.warn("Bus cache empty, fetching for modal.");
+                          await populateBusSelector();
+                      }
+                      cachedBuses.forEach(bus => {
+                          const selected = (bus.id === passenger.assignedBusId) ? 'selected' : '';
+                          busOptionsHtml += `<option value="${bus.id}" ${selected}>${bus.identifier || `Bus ID: ${bus.id.substring(0,6)}...`}</option>`;
+                      });
+                      const busSelectHtml = `
+                          <div>
+                              <label for="edit-passenger-bus" class="block text-sm font-medium text-gray-700">Assigned Bus</label>
+                              <select id="edit-passenger-bus" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                  ${busOptionsHtml}
+                              </select>
+                          </div>`;
+
+                      editFieldsDiv.innerHTML = `
+                          <div><label for="edit-passenger-name" class="block text-sm font-medium text-gray-700">Name</label><input type="text" id="edit-passenger-name" value="${passenger.name || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
+                          <div>
+                              <label for="edit-passenger-gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                              <select id="edit-passenger-gender" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                  <option value="Female" ${passenger.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                  <option value="Male" ${passenger.gender === 'Male' ? 'selected' : ''}>Male</option>
+                              </select>
+                          </div>
+                          <div><label for="edit-passenger-mobile" class="block text-sm font-medium text-gray-700">Mobile Number</label><input type="tel" id="edit-passenger-mobile" value="${passenger.mobileNumber || ''}" placeholder="e.g., 555-0101" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></div>
+                          ${busSelectHtml} <div><label for="edit-passenger-status" class="block text-sm font-medium text-gray-700">Status</label><select id="edit-passenger-status" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"><option value="pending" ${passenger.status === 'pending' ? 'selected' : ''}>Pending</option><option value="checked-in" ${passenger.status === 'checked-in' ? 'selected' : ''}>Checked-in</option></select></div>
+                      `;
+                  }
+              } catch (error) {
+                  console.error("Error loading data for modal: ", error);
+                  editFieldsDiv.innerHTML = `<p class="text-red-500">Error loading details: ${error.message}</p>`;
+                  alert("Error loading details for editing. Please check console.");
+              }
+          }
+
+          window.closeEditModal = function() {
+              editModal.style.display = 'none';
+          }
+
+          // Handles Save Changes - Updates Firestore (with Enhanced Debugging)
+          async function handleSaveChanges(event) {
+              event.preventDefault();
+              disableButton(modalSaveButton, "Saving...");
+              const originalButtonText = "Save Changes";
+
+              const docId = editItemIdInput.value;
+              const itemType = editItemTypeInput.value;
+              let updateData = {};
+
+              console.log(`[Save] Starting save for type: ${itemType}, docId: ${docId}`);
+
+              try {
+                  // Get references to elements *inside* the try block after confirming itemType
+                  if (itemType === 'bus') {
+                      const identifierEl = document.getElementById('edit-bus-identifier');
+                      const capacityEl = document.getElementById('edit-bus-capacity');
+                      if (!identifierEl || !capacityEl) throw new Error("Bus form elements not found!");
+
+                      updateData = {
+                          identifier: identifierEl.value,
+                          capacity: parseInt(capacityEl.value, 10) || 0
+                      };
+                      console.log("[Save] Bus update data:", updateData);
+                      const itemRef = doc(db, "buses", docId);
+                      console.log("[Save] Calling updateDoc for bus...");
+                      await updateDoc(itemRef, updateData);
+                      console.log(`[Save] Bus ${docId} updateDoc successful.`);
+
+                      // Refresh UI after successful update
+                      try {
+                          await displayAdminBuses();
+                          await populateBusSelector();
+                      } catch (refreshError) {
+                           console.error("[Save] Error refreshing UI after bus save:", refreshError);
+                      }
+
+                  } else if (itemType === 'passenger') {
+                      const nameEl = document.getElementById('edit-passenger-name');
+                      const genderEl = document.getElementById('edit-passenger-gender');
+                      const mobileEl = document.getElementById('edit-passenger-mobile');
+                      const busEl = document.getElementById('edit-passenger-bus');
+                      const statusEl = document.getElementById('edit-passenger-status');
+                      if (!nameEl || !genderEl || !mobileEl || !busEl || !statusEl) throw new Error("Passenger form elements not found!");
+
+                      updateData = {
+                          name: nameEl.value,
+                          gender: genderEl.value,
+                          mobileNumber: mobileEl.value || null,
+                          assignedBusId: busEl.value || null,
+                          status: statusEl.value
+                      };
+                       console.log("[Save] Passenger update data:", updateData);
+                      const itemRef = doc(db, "passengers", docId);
+                      console.log("[Save] Calling updateDoc for passenger...");
+                      await updateDoc(itemRef, updateData);
+                      console.log(`[Save] Passenger ${docId} updateDoc successful.`);
+
+                       // Refresh UI after successful update
+                       try {
+                           console.log("[Save] Refreshing admin passengers table...");
+                           await displayAdminPassengers();
+                           const selectedBusId = busSelect.value;
+                           if (selectedBusId) {
+                                console.log("[Save] Refreshing driver passenger list...");
+                                await displayPassengers(selectedBusId);
+                           }
+                       } catch (refreshError) {
+                           console.error("[Save] Error refreshing UI after passenger save:", refreshError);
+                       }
+                  }
+                  closeEditModal(); // Close modal only on success
+              } catch (error) {
+                  console.error(`[Save] Error saving ${itemType} ${docId}: `, error);
+                  alert(`Error saving changes for ${itemType}. Please check the console for details. Error: ${error.message}`);
+              } finally {
+                  enableButton(modalSaveButton, originalButtonText);
+                  console.log("[Save] Save operation finished (finally block).");
+              }
+          }
+
+
+          // --- Bulk Add Passenger Function ---
+          window.handleBulkAddPassengers = async function() {
+              const importButton = document.getElementById('import-list-button');
+              disableButton(importButton, "Importing...");
+              bulkAddFeedbackDiv.innerHTML = '';
+
+              const list = bulkPassengerListTextarea.value.trim();
+              const lines = list.split('\n');
+              let addedCount = 0;
+              let errorCount = 0;
+              let errors = [];
+              const batch = writeBatch(db);
+              let operationsInBatch = 0;
+              const MAX_BATCH_OPERATIONS = 499;
+
+              let validBusDocIds = [];
+               try {
+                    if (cachedBuses.length === 0) await populateBusSelector();
+                    validBusDocIds = cachedBuses.map(bus => bus.id);
+               } catch {
+                   errors.push("Could not verify bus IDs before import.");
+                   errorCount++;
+               }
+
+              if (validBusDocIds.length > 0 || errors.length === 0) {
+                    lines.forEach((line, index) => {
+                        line = line.trim();
+                        if (!line) return;
+                        const values = line.split(',');
+                        if (values.length !== 4) { errors.push(`Line ${index + 1}: Incorrect format.`); errorCount++; return; }
+                        const [name, gender, mobileNumber, assignedBusDocId] = values.map(v => v.trim());
+                        if (!name) { errors.push(`Line ${index + 1}: Name empty.`); errorCount++; return; }
+                        if (!assignedBusDocId) { errors.push(`Line ${index + 1}: Bus ID empty.`); errorCount++; return; }
+                        if (!validBusDocIds.includes(assignedBusDocId)) { errors.push(`Line ${index + 1}: Bus ID "${assignedBusDocId}" not found.`); errorCount++; return; }
+
+                        const newPassengerData = { name, gender: gender || 'N/A', mobileNumber: mobileNumber || null, status: 'pending', assignedBusId };
+                        const newPassengerRef = doc(collection(db, "passengers"));
+                        batch.set(newPassengerRef, newPassengerData);
+                        operationsInBatch++; addedCount++;
+                    });
+              }
+
+              if (operationsInBatch > 0 && errorCount === 0) {
+                  try {
+                      await batch.commit();
+                      console.log(`Batch committed with ${addedCount} passengers.`);
+                      bulkPassengerListTextarea.value = '';
+                      await displayAdminPassengers();
+                      const selectedBusId = busSelect.value;
+                      if (selectedBusId) await displayPassengers(selectedBusId);
+                  } catch (error) {
+                      console.error("Error committing batch: ", error);
+                      errors.push(`DB Error: ${error.message}`); errorCount += addedCount; addedCount = 0;
+                  }
+              } else if (operationsInBatch > 0 && errorCount > 0) {
+                   errors.push("Import aborted due to errors.");
+              }
+
+              // Display feedback
+              if (addedCount > 0) {
                  const successMsg = document.createElement('div');
                  successMsg.className = 'feedback-message feedback-success';
-                 successMsg.textContent = `Successfully added ${addedCount} passengers.`;
+                 successMsg.textContent = `Successfully imported ${addedCount} passengers.`;
                  bulkAddFeedbackDiv.appendChild(successMsg);
-            }
-             if (errorCount > 0) {
+              }
+              if (errorCount > 0) {
                  const errorMsg = document.createElement('div');
                  errorMsg.className = 'feedback-message feedback-error';
-                 errorMsg.innerHTML = `Skipped ${errorCount} lines due to errors:<ul>${errors.map(e => `<li class="ml-4 text-xs">${e}</li>`).join('')}</ul>`;
+                 errorMsg.innerHTML = `Skipped/Failed ${errorCount} lines:<ul>${errors.map(e => `<li class="ml-4 text-xs">${e}</li>`).join('')}</ul>`;
                  bulkAddFeedbackDiv.appendChild(errorMsg);
-            }
-             if (addedCount === 0 && errorCount === 0 && list.length > 0) {
+              }
+              if (addedCount === 0 && errorCount === 0 && list.length > 0) {
                  const noDataMsg = document.createElement('div');
                  noDataMsg.className = 'feedback-message feedback-error';
-                 noDataMsg.textContent = 'No valid passenger data found in the list.';
+                 noDataMsg.textContent = 'No valid passenger data found to import.';
                  bulkAddFeedbackDiv.appendChild(noDataMsg);
-            }
+              }
 
-            if (addedCount > 0) {
-                bulkPassengerListTextarea.value = '';
-                displayAdminPassengers();
-                 // Refresh driver view if passengers were added and a bus is selected
-                 const selectedBusId = parseInt(busSelect.value, 10);
-                 if (!isNaN(selectedBusId)) {
-                     displayPassengers(selectedBusId);
-                 }
-            }
-        }
+              enableButton(importButton, "Import List");
+          }
 
-        // --- Event Listeners ---
-        busSelect.addEventListener('change', (event) => {
-            const selectedBusId = parseInt(event.target.value, 10);
-            if (!isNaN(selectedBusId)) { displayPassengers(selectedBusId); }
-            else { passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">Select a bus to see the passenger list.</p>'; updateSummary([]); }
-        });
-        editForm.addEventListener('submit', handleSaveChanges);
-        window.onclick = function(event) { if (event.target == editModal) { closeEditModal(); } }
+          // --- Event Listeners ---
+          busSelect.addEventListener('change', (event) => {
+              const selectedBusDocId = event.target.value;
+              if (selectedBusDocId) { displayPassengers(selectedBusDocId); }
+              else { passengerListDiv.innerHTML = '<p class="text-gray-500 text-center">Select a bus to see the passenger list.</p>'; updateSummary([]); }
+          });
+          editForm.addEventListener('submit', handleSaveChanges);
+          window.onclick = function(event) { if (event.target == editModal) { closeEditModal(); } }
 
-        // --- Initial Load ---
-        populateBusSelector();
-        updateSummary([]);
-        switchView('driver'); // Set initial view
+          // --- Initial Load ---
+          console.log("Starting initial data load...");
+          switchView('driver'); // Set initial view and trigger initial data load
+
+      } catch (error) {
+          console.error("Firebase Initialization Failed: ", error);
+          alert("FATAL ERROR: Firebase could not be initialized. Check console and Firebase configuration.");
+      }
 
     </script>
 
