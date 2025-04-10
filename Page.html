@@ -129,13 +129,14 @@
                          <thead class="bg-gray-50">
                              <tr>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identifier/Route</th>
-                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
-                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passengers</th>
+                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Passengers</th>
+                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Checked In</th>
+                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                              </tr>
                          </thead>
                          <tbody id="admin-bus-table-body" class="bg-white divide-y divide-gray-200">
-                             <tr><td colspan="4" class="text-center p-4 loading-indicator">Loading buses...</td></tr>
+                             <tr><td colspan="5" class="text-center p-4 loading-indicator">Loading buses...</td></tr>
                          </tbody>
                      </table>
                  </div>
@@ -531,31 +532,42 @@
                   // Get all passengers to count per bus
                   const passengerCol = collection(db, "passengers");
                   const passengerSnapshot = await getDocs(passengerCol);
-                  const passengerCountMap = new Map();
+                  const passengerStatsMap = new Map();
                   
                   passengerSnapshot.docs.forEach(doc => {
                       const passenger = doc.data();
                       if (passenger.assignedBusId) {
-                          const currentCount = passengerCountMap.get(passenger.assignedBusId) || 0;
-                          passengerCountMap.set(passenger.assignedBusId, currentCount + 1);
+                          const stats = passengerStatsMap.get(passenger.assignedBusId) || { total: 0, checkedIn: 0, pending: 0 };
+                          stats.total++;
+                          if (passenger.status === 'checked-in') {
+                              stats.checkedIn++;
+                          } else {
+                              stats.pending++;
+                          }
+                          passengerStatsMap.set(passenger.assignedBusId, stats);
                       }
                   });
 
                   adminBusTableBody.innerHTML = '';
                   if (busList.length === 0) {
-                      adminBusTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No buses found.</td></tr>';
+                      adminBusTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">No buses found.</td></tr>';
                   } else {
                       busList.forEach(bus => {
                           const row = adminBusTableBody.insertRow();
-                          const passengerCount = passengerCountMap.get(bus.id) || 0;
+                          const stats = passengerStatsMap.get(bus.id) || { total: 0, checkedIn: 0, pending: 0 };
                           const capacity = bus.capacity || 0;
-                          const capacityClass = passengerCount > capacity ? 'text-red-600' : 'text-gray-500';
+                          const capacityClass = stats.total > capacity ? 'text-red-600' : 'text-gray-500';
                           
                           row.innerHTML = `
                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.identifier || 'N/A'}</td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${capacity}</td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm ${capacityClass}">
-                                  ${passengerCount} / ${capacity}
+                                  ${stats.total} / ${capacity}
+                              </td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                                  ${stats.checkedIn}
+                              </td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                                  ${stats.pending}
                               </td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <button onclick="openEditModal('bus', '${bus.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>
@@ -565,7 +577,7 @@
                   }
               } catch (error) {
                   console.error("Error loading admin buses: ", error);
-                  adminBusTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Error loading buses.</td></tr>';
+                  adminBusTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Error loading buses.</td></tr>';
                   alert("Error loading buses for admin view. Please check console.");
               }
           }
