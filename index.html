@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver/Admin Prototype (Firebase)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -42,6 +43,37 @@
         }
         .add-button:hover {
             background-color: #059669; /* green-600 */
+        }
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            padding-right: 20px;
+        }
+        .sortable-header:hover {
+            background-color: #f3f4f6;
+        }
+        .sortable-header::after {
+            content: '';
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #9ca3af;
+            opacity: 0.5;
+        }
+        .sortable-header.asc::after {
+            border-bottom: 4px solid #4f46e5;
+            opacity: 1;
+        }
+        .sortable-header.desc::after {
+            border-top: 4px solid #4f46e5;
+            border-bottom: none;
+            opacity: 1;
         }
     </style>
 </head>
@@ -98,11 +130,12 @@
                              <tr>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Identifier/Route</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
+                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passengers</th>
                                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                              </tr>
                          </thead>
                          <tbody id="admin-bus-table-body" class="bg-white divide-y divide-gray-200">
-                             <tr><td colspan="3" class="text-center p-4 loading-indicator">Loading buses...</td></tr>
+                             <tr><td colspan="4" class="text-center p-4 loading-indicator">Loading buses...</td></tr>
                          </tbody>
                      </table>
                  </div>
@@ -124,16 +157,20 @@
                  <div id="bulk-add-panel" class="hidden mb-4 border border-gray-200 p-4 rounded-md bg-gray-50">
                     <h3 class="text-md font-semibold text-gray-700 mb-3">Bulk Add Passengers Form</h3>
                     <p class="text-sm text-gray-600 mb-2">
-                        Paste passenger list below. Each line should be one passenger in the format: <br>
-                        <code class="text-xs bg-white p-1 rounded border border-gray-300">Name,Gender,MobileNumber,AssignedBusDocID</code>
-                        <br> <span class="text-red-600 text-xs">Note: Use the actual Firestore Document ID for the bus.</span>
+                        Upload an Excel file (.xlsx) with the following columns:<br>
+                        <code class="text-xs bg-white p-1 rounded border border-gray-300">Name, Gender, MobileNumber</code>
                     </p>
                     <p class="text-xs text-gray-500 mb-3">
-                        Example: <code class="text-xs bg-white p-1 rounded border border-gray-300">John Doe,Male,555-1234,BusDocABC123</code>
+                        Example: <code class="text-xs bg-white p-1 rounded border border-gray-300">John Doe,Male,555-1234</code>
                     </p>
-                    <textarea id="bulk-passenger-list" rows="6" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Paste list here..."></textarea>
+                    <input type="file" id="excel-file" accept=".xlsx" class="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-indigo-50 file:text-indigo-700
+                        hover:file:bg-indigo-100" />
                     <button id="import-list-button" onclick="handleBulkAddPassengers()" class="mt-3 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Import List
+                        Import Excel
                     </button>
                     <div id="bulk-add-feedback" class="mt-3"></div>
                 </div>
@@ -142,11 +179,11 @@
                     <table class="min-w-full divide-y divide-gray-200">
                          <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Bus ID</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort="name">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort="gender">Gender</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort="mobile">Mobile</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort="bus">Assigned Bus</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-sort="status">Status</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -235,8 +272,7 @@
           function showLoading(element, message = "Loading...") {
               if (element) {
                    let colspan = 1;
-                   if (element.id === 'admin-bus-table-body') colspan = 3;
-                   if (element.id === 'admin-passenger-table-body') colspan = 6;
+                   if (element.id === 'admin-bus-table-body') colspan = 4;
                    if (element.tagName === 'TBODY') {
                         element.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 loading-indicator">${message}</td></tr>`;
                    } else {
@@ -448,6 +484,43 @@
           }
 
           // --- Admin View Functions ---
+          let currentSort = { column: 'name', direction: 'asc' };
+
+          function sortPassengers(passengers, column, direction) {
+              return [...passengers].sort((a, b) => {
+                  let aValue = a[column];
+                  let bValue = b[column];
+
+                  // Special handling for bus identifier sorting
+                  if (column === 'bus') {
+                      aValue = a.assignedBusId;
+                      bValue = b.assignedBusId;
+                  }
+
+                  // Handle null/undefined values
+                  if (aValue === null || aValue === undefined) return direction === 'asc' ? 1 : -1;
+                  if (bValue === null || bValue === undefined) return direction === 'asc' ? -1 : 1;
+
+                  // Convert to string for comparison
+                  aValue = String(aValue).toLowerCase();
+                  bValue = String(bValue).toLowerCase();
+
+                  if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+                  if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+                  return 0;
+              });
+          }
+
+          function updateSortHeaders() {
+              const headers = document.querySelectorAll('.sortable-header');
+              headers.forEach(header => {
+                  header.classList.remove('asc', 'desc');
+                  if (header.dataset.sort === currentSort.column) {
+                      header.classList.add(currentSort.direction);
+                  }
+              });
+          }
+
           async function displayAdminBuses() {
               showLoading(adminBusTableBody, "Loading buses...");
               try {
@@ -455,24 +528,44 @@
                   const busSnapshot = await getDocs(busCol);
                   const busList = busSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+                  // Get all passengers to count per bus
+                  const passengerCol = collection(db, "passengers");
+                  const passengerSnapshot = await getDocs(passengerCol);
+                  const passengerCountMap = new Map();
+                  
+                  passengerSnapshot.docs.forEach(doc => {
+                      const passenger = doc.data();
+                      if (passenger.assignedBusId) {
+                          const currentCount = passengerCountMap.get(passenger.assignedBusId) || 0;
+                          passengerCountMap.set(passenger.assignedBusId, currentCount + 1);
+                      }
+                  });
+
                   adminBusTableBody.innerHTML = '';
                   if (busList.length === 0) {
-                      adminBusTableBody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-gray-500">No buses found.</td></tr>';
+                      adminBusTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">No buses found.</td></tr>';
                   } else {
                       busList.forEach(bus => {
                           const row = adminBusTableBody.insertRow();
+                          const passengerCount = passengerCountMap.get(bus.id) || 0;
+                          const capacity = bus.capacity || 0;
+                          const capacityClass = passengerCount > capacity ? 'text-red-600' : 'text-gray-500';
+                          
                           row.innerHTML = `
                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.identifier || 'N/A'}</td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${bus.capacity || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${capacity}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm ${capacityClass}">
+                                  ${passengerCount} / ${capacity}
+                              </td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <button onclick="openEditModal('bus', '${bus.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>
-                                  </td>
+                              </td>
                           `;
                       });
                   }
               } catch (error) {
                   console.error("Error loading admin buses: ", error);
-                  adminBusTableBody.innerHTML = '<tr><td colspan="3" class="text-center p-4 text-red-500">Error loading buses.</td></tr>';
+                  adminBusTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-red-500">Error loading buses.</td></tr>';
                   alert("Error loading buses for admin view. Please check console.");
               }
           }
@@ -482,7 +575,24 @@
               try {
                   const passengerCol = collection(db, "passengers");
                   const passengerSnapshot = await getDocs(passengerCol);
-                  const passengerList = passengerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                  let passengerList = passengerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                  // Get all buses to map IDs to identifiers
+                  const busCol = collection(db, "buses");
+                  const busSnapshot = await getDocs(busCol);
+                  const busMap = new Map();
+                  busSnapshot.docs.forEach(doc => {
+                      busMap.set(doc.id, doc.data().identifier || 'N/A');
+                  });
+
+                  // Add bus identifier to passenger data for sorting
+                  passengerList = passengerList.map(passenger => ({
+                      ...passenger,
+                      bus: passenger.assignedBusId ? busMap.get(passenger.assignedBusId) || 'N/A' : 'N/A'
+                  }));
+
+                  // Sort the passenger list
+                  passengerList = sortPassengers(passengerList, currentSort.column, currentSort.direction);
 
                   adminPassengerTableBody.innerHTML = '';
                   if (passengerList.length === 0) {
@@ -494,7 +604,8 @@
                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.name || 'N/A'}</td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.gender || 'N/A'}</td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.mobileNumber || 'N/A'}</td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title="${passenger.assignedBusId || ''}">${passenger.assignedBusId ? passenger.assignedBusId.substring(0,6)+'...' : 'N/A'}</td> <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.status || 'N/A'}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.bus}</td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${passenger.status || 'N/A'}</td>
                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <button onclick="openEditModal('passenger', '${passenger.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>
                                   <button onclick="handleDeletePassenger('${passenger.id}')" class="text-red-600 hover:text-red-900 ml-4">Delete</button>
@@ -502,6 +613,7 @@
                           `;
                       });
                   }
+                  updateSortHeaders();
               } catch (error) {
                   console.error("Error loading admin passengers: ", error);
                   adminPassengerTableBody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-red-500">Error loading passengers.</td></tr>';
@@ -738,79 +850,115 @@
               disableButton(importButton, "Importing...");
               bulkAddFeedbackDiv.innerHTML = '';
 
-              const list = bulkPassengerListTextarea.value.trim();
-              const lines = list.split('\n');
-              let addedCount = 0;
-              let errorCount = 0;
-              let errors = [];
-              const batch = writeBatch(db);
-              let operationsInBatch = 0;
-              const MAX_BATCH_OPERATIONS = 499;
-
-              let validBusDocIds = [];
-               try {
-                    if (cachedBuses.length === 0) await populateBusSelector();
-                    validBusDocIds = cachedBuses.map(bus => bus.id);
-               } catch {
-                   errors.push("Could not verify bus IDs before import.");
-                   errorCount++;
-               }
-
-              if (validBusDocIds.length > 0 || errors.length === 0) {
-                    lines.forEach((line, index) => {
-                        line = line.trim();
-                        if (!line) return;
-                        const values = line.split(',');
-                        if (values.length !== 4) { errors.push(`Line ${index + 1}: Incorrect format.`); errorCount++; return; }
-                        const [name, gender, mobileNumber, assignedBusDocId] = values.map(v => v.trim());
-                        if (!name) { errors.push(`Line ${index + 1}: Name empty.`); errorCount++; return; }
-                        if (!assignedBusDocId) { errors.push(`Line ${index + 1}: Bus ID empty.`); errorCount++; return; }
-                        if (!validBusDocIds.includes(assignedBusDocId)) { errors.push(`Line ${index + 1}: Bus ID "${assignedBusDocId}" not found.`); errorCount++; return; }
-
-                        const newPassengerData = { name, gender: gender || 'N/A', mobileNumber: mobileNumber || null, status: 'pending', assignedBusId };
-                        const newPassengerRef = doc(collection(db, "passengers"));
-                        batch.set(newPassengerRef, newPassengerData);
-                        operationsInBatch++; addedCount++;
-                    });
+              const fileInput = document.getElementById('excel-file');
+              const file = fileInput.files[0];
+              
+              if (!file) {
+                  const errorMsg = document.createElement('div');
+                  errorMsg.className = 'feedback-message feedback-error';
+                  errorMsg.textContent = 'Please select an Excel file to import.';
+                  bulkAddFeedbackDiv.appendChild(errorMsg);
+                  enableButton(importButton, "Import Excel");
+                  return;
               }
 
-              if (operationsInBatch > 0 && errorCount === 0) {
-                  try {
-                      await batch.commit();
-                      console.log(`Batch committed with ${addedCount} passengers.`);
-                      bulkPassengerListTextarea.value = '';
-                      await displayAdminPassengers();
-                      const selectedBusId = busSelect.value;
-                      if (selectedBusId) await displayPassengers(selectedBusId);
-                  } catch (error) {
-                      console.error("Error committing batch: ", error);
-                      errors.push(`DB Error: ${error.message}`); errorCount += addedCount; addedCount = 0;
-                  }
-              } else if (operationsInBatch > 0 && errorCount > 0) {
-                   errors.push("Import aborted due to errors.");
-              }
+              try {
+                  // Create a new Excel reader
+                  const reader = new FileReader();
+                  reader.onload = async function(e) {
+                      const data = new Uint8Array(e.target.result);
+                      const workbook = XLSX.read(data, { type: 'array' });
+                      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-              // Display feedback
-              if (addedCount > 0) {
-                 const successMsg = document.createElement('div');
-                 successMsg.className = 'feedback-message feedback-success';
-                 successMsg.textContent = `Successfully imported ${addedCount} passengers.`;
-                 bulkAddFeedbackDiv.appendChild(successMsg);
-              }
-              if (errorCount > 0) {
-                 const errorMsg = document.createElement('div');
-                 errorMsg.className = 'feedback-message feedback-error';
-                 errorMsg.innerHTML = `Skipped/Failed ${errorCount} lines:<ul>${errors.map(e => `<li class="ml-4 text-xs">${e}</li>`).join('')}</ul>`;
-                 bulkAddFeedbackDiv.appendChild(errorMsg);
-              }
-              if (addedCount === 0 && errorCount === 0 && list.length > 0) {
-                 const noDataMsg = document.createElement('div');
-                 noDataMsg.className = 'feedback-message feedback-error';
-                 noDataMsg.textContent = 'No valid passenger data found to import.';
-                 bulkAddFeedbackDiv.appendChild(noDataMsg);
-              }
+                      // Skip header row
+                      const rows = jsonData.slice(1);
+                      let addedCount = 0;
+                      let errorCount = 0;
+                      let errors = [];
+                      const batch = writeBatch(db);
+                      let operationsInBatch = 0;
+                      const MAX_BATCH_OPERATIONS = 499;
 
-              enableButton(importButton, "Import List");
+                      rows.forEach((row, index) => {
+                          if (!row || row.length < 3) {
+                              errors.push(`Row ${index + 2}: Incorrect format. Expected 3 columns.`);
+                              errorCount++;
+                              return;
+                          }
+
+                          const [name, gender, mobileNumber] = row.map(v => v ? v.toString().trim() : '');
+                          
+                          if (!name) {
+                              errors.push(`Row ${index + 2}: Name is empty.`);
+                              errorCount++;
+                              return;
+                          }
+
+                          const newPassengerData = {
+                              name,
+                              gender: gender || 'N/A',
+                              mobileNumber: mobileNumber || null,
+                              status: 'pending',
+                              assignedBusId: null // Will be updated later
+                          };
+
+                          const newPassengerRef = doc(collection(db, "passengers"));
+                          batch.set(newPassengerRef, newPassengerData);
+                          operationsInBatch++;
+                          addedCount++;
+                      });
+
+                      if (operationsInBatch > 0 && errorCount === 0) {
+                          try {
+                              await batch.commit();
+                              console.log(`Batch committed with ${addedCount} passengers.`);
+                              fileInput.value = ''; // Clear file input
+                              await displayAdminPassengers();
+                              const selectedBusId = busSelect.value;
+                              if (selectedBusId) await displayPassengers(selectedBusId);
+                          } catch (error) {
+                              console.error("Error committing batch: ", error);
+                              errors.push(`DB Error: ${error.message}`);
+                              errorCount += addedCount;
+                              addedCount = 0;
+                          }
+                      } else if (operationsInBatch > 0 && errorCount > 0) {
+                          errors.push("Import aborted due to errors.");
+                      }
+
+                      // Display feedback
+                      if (addedCount > 0) {
+                          const successMsg = document.createElement('div');
+                          successMsg.className = 'feedback-message feedback-success';
+                          successMsg.textContent = `Successfully imported ${addedCount} passengers.`;
+                          bulkAddFeedbackDiv.appendChild(successMsg);
+                      }
+                      if (errorCount > 0) {
+                          const errorMsg = document.createElement('div');
+                          errorMsg.className = 'feedback-message feedback-error';
+                          errorMsg.innerHTML = `Skipped/Failed ${errorCount} rows:<ul>${errors.map(e => `<li class="ml-4 text-xs">${e}</li>`).join('')}</ul>`;
+                          bulkAddFeedbackDiv.appendChild(errorMsg);
+                      }
+                      if (addedCount === 0 && errorCount === 0 && rows.length > 0) {
+                          const noDataMsg = document.createElement('div');
+                          noDataMsg.className = 'feedback-message feedback-error';
+                          noDataMsg.textContent = 'No valid passenger data found to import.';
+                          bulkAddFeedbackDiv.appendChild(noDataMsg);
+                      }
+
+                      enableButton(importButton, "Import Excel");
+                  };
+
+                  reader.readAsArrayBuffer(file);
+              } catch (error) {
+                  console.error("Error processing Excel file: ", error);
+                  const errorMsg = document.createElement('div');
+                  errorMsg.className = 'feedback-message feedback-error';
+                  errorMsg.textContent = `Error processing Excel file: ${error.message}`;
+                  bulkAddFeedbackDiv.appendChild(errorMsg);
+                  enableButton(importButton, "Import Excel");
+              }
           }
 
           // --- Event Listeners ---
@@ -830,6 +978,24 @@
                // Driver view is visible by default
           });
 
+          // Add event listeners for sorting
+          document.addEventListener('DOMContentLoaded', () => {
+              const sortableHeaders = document.querySelectorAll('.sortable-header');
+              sortableHeaders.forEach(header => {
+                  header.addEventListener('click', () => {
+                      const column = header.dataset.sort;
+                      if (currentSort.column === column) {
+                          // Toggle direction if clicking the same column
+                          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                      } else {
+                          // Set new column and default to ascending
+                          currentSort.column = column;
+                          currentSort.direction = 'asc';
+                      }
+                      displayAdminPassengers();
+                  });
+              });
+          });
 
       } catch (error) {
           console.error("Firebase Initialization Failed: ", error);
